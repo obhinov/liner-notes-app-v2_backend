@@ -1,0 +1,17 @@
+service: aws-api-liner-notes-app-v2
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-2
+  stage: ${opt:stage, "dev"} # sls deploy --stage test (or staging, dev, prod)
+
+functions:
+  hello:
+    handler: hello.handler
+    events:
+      - http:
+          path: /
+          method: GET
+          cors: true
