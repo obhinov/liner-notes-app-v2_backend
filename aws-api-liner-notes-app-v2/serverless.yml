@@ -8,8 +8,8 @@ provider:
   stage: ${opt:stage, "dev"} # sls deploy --stage test (or staging, dev, prod)
 
 functions:
-  hello:
-    handler: hello.handler
+  apicaller:
+    handler: apicaller.handler
     events:
       - http:
           path: /
