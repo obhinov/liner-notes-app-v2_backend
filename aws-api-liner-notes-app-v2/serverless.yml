@@ -12,6 +12,6 @@ functions:
     handler: apicaller.handler
     events:
       - http:
-          path: /
+          path: spotifygenius
           method: GET
           cors: true
