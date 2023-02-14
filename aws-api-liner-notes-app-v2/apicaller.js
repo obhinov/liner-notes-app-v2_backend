@@ -1,11 +1,12 @@
-const SpotifyWebApi = require('spotify-web-api-node');
-const spotifyApi = new SpotifyWebApi();
-const axios = require('axios');
+// ----- Imports -----
+const spotifyApiTokenCaller = require('./helper_functions/spotifyApiTokenCaller');
+const spotifyApiDataCaller = require('./helper_functions/spotifyApiDataCaller');
+const geniusApiCaller = require('./helper_functions/geniusApiCaller');
 
-const api_function = {};
+const apiFunction = {};
 
 // ----- Main handler function -----
-api_function.handler = async (event) => {
+apiFunction.handler = async (event) => {
   console.log('Event input:', event);
 
   let main_response = {};
@@ -19,11 +20,11 @@ api_function.handler = async (event) => {
 
   try {
     // Get spotify token
-    const token_response = await spotify_api_token_caller(spotify_auth_code, spotify_redirect_uri, spotify_id, spotify_secret);
-    console.log('Token response received!:', token_response.data.access_token);
+    const spotify_token_response = await spotifyApiTokenCaller(spotify_auth_code, spotify_redirect_uri, spotify_id, spotify_secret);
+    console.log('Token response received!:', spotify_token_response.data.access_token);
 
     // Get spotify data of current playing track
-    const spotify_data_response = await spotify_api_data_caller(token_response.data.access_token);
+    const spotify_data_response = await spotifyApiDataCaller(spotify_token_response.data.access_token);
     console.log('Spotify data received!:', spotify_data_response);
     
     // Get genius search data using spotify data
@@ -33,13 +34,13 @@ api_function.handler = async (event) => {
     const genius_api_url = "https://api.genius.com/search?" + new URLSearchParams({
       q: spotify_song_name_cleaned + ' ' + spotify_song_artist
     });
-    const genius_search_response = await genius_api_caller(genius_api_url, genius_client_access_token);
+    const genius_search_response = await geniusApiCaller(genius_api_url, genius_client_access_token);
     console.log('Genius search received!:', genius_search_response);
 
     // Get genius song data using genius search data
     const genius_api_path = genius_search_response.data.response.hits[0].result.api_path;
     const genius_api_for_song = "https://api.genius.com" + genius_api_path;
-    const genius_song_data_response = await genius_api_caller(genius_api_for_song, genius_client_access_token);
+    const genius_song_data_response = await geniusApiCaller(genius_api_for_song, genius_client_access_token);
     console.log('Genius song data received!:', genius_song_data_response);
 
     main_response.body = JSON.stringify(genius_song_data_response.data);
@@ -59,49 +60,4 @@ api_function.handler = async (event) => {
 
   return main_response;
 }
-module.exports = api_function
-
-
-// ----- Side Functions -----
-// Function 1: Gets an access token from the spotify web api
-async function spotify_api_token_caller(code_input, redirect_uri_input, id_input, secret_input) {
-
-  const headers = {
-    headers: {
-      "Authorization": "Basic " + Buffer.from(id_input + ":" + secret_input).toString('base64'),
-      "Content-Type": "application/x-www-form-urlencoded"
-    }
-  };
-  
-  const data = new URLSearchParams({
-    grant_type: "authorization_code",
-    code: code_input,
-    redirect_uri: redirect_uri_input
-  });
-
-  const function1_response = axios.post("https://accounts.spotify.com/api/token", data, headers);
-  return function1_response;
-}
-
-// Function 2: Gets any data from spotify using an access token (specific case: get current song user is playing)
-async function spotify_api_data_caller(access_token_input) {
-
-  spotifyApi.setAccessToken(access_token_input);
-  const function2_response = spotifyApi.getMyCurrentPlayingTrack();
-  return function2_response;
-
-}
-
-// Function 3: Gets anything from the genius web api
-async function genius_api_caller(url,token) {
-  const headers = {
-    headers: {
-      "Authorization": "Bearer " + token,
-      "User-Agent": "CompuServe Classic/1.22",
-      "Accept": "application/json",
-      "Host": "api.genius.com"
-    }
-  }
-  const function3_response = await axios.get(url, headers);
-  return function3_response;
-}
+module.exports = apiFunction
